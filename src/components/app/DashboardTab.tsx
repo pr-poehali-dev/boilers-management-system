@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { Boiler } from './types';
 
 interface Stats {
   totalRequests: number;
@@ -15,9 +18,24 @@ interface Stats {
 
 interface DashboardTabProps {
   stats: Stats;
+  boilers: Boiler[];
 }
 
-const DashboardTab = ({ stats }: DashboardTabProps) => {
+const DashboardTab = ({ stats, boilers }: DashboardTabProps) => {
+  const getMaintenanceUrgency = (nextMaintenance: string) => {
+    const now = new Date();
+    const maintenanceDate = new Date(nextMaintenance);
+    const diffTime = maintenanceDate.getTime() - now.getTime();
+    const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return { daysUntil, isOverdue: daysUntil < 0, isUrgent: daysUntil <= 7 };
+  };
+
+  const urgentBoilers = boilers
+    .map(b => ({ ...b, urgency: getMaintenanceUrgency(b.nextMaintenance) }))
+    .filter(b => b.urgency.isOverdue || b.urgency.isUrgent)
+    .sort((a, b) => a.urgency.daysUntil - b.urgency.daysUntil)
+    .slice(0, 5);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -135,6 +153,66 @@ const DashboardTab = ({ stats }: DashboardTabProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {urgentBoilers.length > 0 && (
+        <Card className="border-l-4 border-l-red-500 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Icon name="AlertCircle" size={24} className="text-red-500 animate-pulse" />
+              Критические сроки ТО
+              <Badge className="bg-red-100 text-red-800 ml-2">{urgentBoilers.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {urgentBoilers.map(boiler => (
+                <div 
+                  key={boiler.id} 
+                  className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-sm">{boiler.model}</h4>
+                      {boiler.urgency.isOverdue ? (
+                        <Badge className="bg-red-500 text-white text-xs animate-pulse">
+                          Просрочено {Math.abs(boiler.urgency.daysUntil)} дн.!
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-orange-500 text-white text-xs">
+                          Через {boiler.urgency.daysUntil} дн.
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Icon name="Building2" size={12} />
+                        {boiler.clientName}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icon name="MapPin" size={12} />
+                        {boiler.location}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icon name="Calendar" size={12} />
+                        {new Date(boiler.nextMaintenance).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">
+                      <Icon name="Phone" size={14} />
+                    </Button>
+                    <Button size="sm" className="bg-red-500 hover:bg-red-600">
+                      <Icon name="Wrench" size={14} />
+                      <span className="ml-1">Назначить</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

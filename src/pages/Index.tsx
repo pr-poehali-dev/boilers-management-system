@@ -350,7 +350,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <DashboardTab stats={stats} />
+            <DashboardTab stats={stats} boilers={boilers} />
           </TabsContent>
 
           <TabsContent value="calendar" className="space-y-4">

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { Client, Boiler } from './types';
+import NotificationsPanel from './NotificationsPanel';
 
 interface HeaderProps {
   clients: Client[];
@@ -32,9 +33,7 @@ const Header = ({ clients, boilers }: HeaderProps) => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="bg-white">
-              <Icon name="Bell" size={18} />
-            </Button>
+            <NotificationsPanel boilers={boilers} />
             <Dialog>
               <DialogTrigger asChild>
                 <Button className="bg-accent hover:bg-accent/90">
