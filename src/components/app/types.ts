@@ -58,3 +58,38 @@ export interface Master {
   specialization: string;
   color: string;
 }
+
+export type PartCategory = 'burner' | 'pump' | 'valve' | 'sensor' | 'filter' | 'gasket' | 'electrode' | 'other';
+export type StockStatus = 'in-stock' | 'low-stock' | 'out-of-stock';
+
+export interface SparePart {
+  id: string;
+  name: string;
+  partNumber: string;
+  category: PartCategory;
+  manufacturer: string;
+  compatibleModels: string[];
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  price: number;
+  supplier: string;
+  location: string;
+  status: StockStatus;
+  lastRestocked: string;
+  notes?: string;
+}
+
+export interface PartUsageHistory {
+  id: string;
+  partId: string;
+  partName: string;
+  quantity: number;
+  requestId: string;
+  boilerId: string;
+  clientName: string;
+  masterId: string;
+  masterName: string;
+  usedAt: string;
+  notes?: string;
+}
