@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -56,9 +56,34 @@ interface Client {
   lastContact: string;
 }
 
+interface CalendarEvent {
+  id: string;
+  requestId: string;
+  title: string;
+  date: string;
+  time: string;
+  duration: number;
+  masterId: string;
+  masterName: string;
+  priority: Priority;
+  status: RequestStatus;
+  clientName: string;
+}
+
+interface Master {
+  id: string;
+  name: string;
+  phone: string;
+  specialization: string;
+  color: string;
+}
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarView, setCalendarView] = useState<'week' | 'day'>('week');
+  const [selectedMasterFilter, setSelectedMasterFilter] = useState<string>('all');
 
   const requests: Request[] = [
     {
@@ -199,6 +224,131 @@ const Index = () => {
     }
   ];
 
+  const masters: Master[] = [
+    {
+      id: 'MST-001',
+      name: 'Иванов П.С.',
+      phone: '+7 (495) 111-22-33',
+      specialization: 'Buderus, Viessmann',
+      color: '#3b82f6'
+    },
+    {
+      id: 'MST-002',
+      name: 'Петров А.М.',
+      phone: '+7 (495) 222-33-44',
+      specialization: 'Bosch, De Dietrich',
+      color: '#22c55e'
+    },
+    {
+      id: 'MST-003',
+      name: 'Сидоров В.К.',
+      phone: '+7 (495) 333-44-55',
+      specialization: 'Универсал',
+      color: '#f97316'
+    },
+    {
+      id: 'MST-004',
+      name: 'Козлов Д.Н.',
+      phone: '+7 (495) 444-55-66',
+      specialization: 'Электроника, автоматика',
+      color: '#a855f7'
+    }
+  ];
+
+  const calendarEvents: CalendarEvent[] = [
+    {
+      id: 'EVT-001',
+      requestId: 'REQ-002',
+      title: 'Плановое ТО - Viessmann',
+      date: '2026-01-16',
+      time: '10:00',
+      duration: 120,
+      masterId: 'MST-001',
+      masterName: 'Иванов П.С.',
+      priority: 'medium',
+      status: 'in-progress',
+      clientName: 'АО "Промстрой"'
+    },
+    {
+      id: 'EVT-002',
+      requestId: 'REQ-001',
+      title: 'СРОЧНО: Падение давления',
+      date: '2026-01-16',
+      time: '14:00',
+      duration: 180,
+      masterId: 'MST-001',
+      masterName: 'Иванов П.С.',
+      priority: 'urgent',
+      status: 'new',
+      clientName: 'ООО "Теплосеть"'
+    },
+    {
+      id: 'EVT-003',
+      requestId: 'REQ-003',
+      title: 'Диагностика автоматики',
+      date: '2026-01-16',
+      time: '16:30',
+      duration: 90,
+      masterId: 'MST-002',
+      masterName: 'Петров А.М.',
+      priority: 'medium',
+      status: 'in-progress',
+      clientName: 'ТЦ "Центральный"'
+    },
+    {
+      id: 'EVT-004',
+      requestId: 'REQ-005',
+      title: 'Замена датчика температуры',
+      date: '2026-01-17',
+      time: '09:00',
+      duration: 60,
+      masterId: 'MST-003',
+      masterName: 'Сидоров В.К.',
+      priority: 'low',
+      status: 'new',
+      clientName: 'ООО "Теплосеть"'
+    },
+    {
+      id: 'EVT-005',
+      requestId: 'REQ-006',
+      title: 'Настройка горелки',
+      date: '2026-01-17',
+      time: '11:00',
+      duration: 120,
+      masterId: 'MST-002',
+      masterName: 'Петров А.М.',
+      priority: 'high',
+      status: 'new',
+      clientName: 'Гостиница "Северная"'
+    },
+    {
+      id: 'EVT-006',
+      requestId: 'REQ-007',
+      title: 'Чистка теплообменника',
+      date: '2026-01-17',
+      time: '14:00',
+      duration: 150,
+      masterId: 'MST-001',
+      masterName: 'Иванов П.С.',
+      priority: 'medium',
+      status: 'new',
+      clientName: 'АО "Промстрой"'
+    },
+    {
+      id: 'EVT-007',
+      requestId: 'REQ-008',
+      title: 'Проверка системы безопасности',
+      date: '2026-01-18',
+      time: '10:00',
+      duration: 90,
+      masterId: 'MST-004',
+      masterName: 'Козлов Д.Н.',
+      priority: 'high',
+      status: 'new',
+      clientName: 'ТЦ "Центральный"'
+    }
+  ];
+
   const getStatusBadge = (status: RequestStatus) => {
     const variants = {
       new: { variant: 'default' as const, label: 'Новая', icon: 'AlertCircle' },
@@ -251,6 +401,52 @@ const Index = () => {
     criticalBoilers: 3,
     totalClients: 42,
     avgResponseTime: '2.4ч'
+  };
+
+  const getWeekDays = (date: Date) => {
+    const week = [];
+    const current = new Date(date);
+    current.setDate(current.getDate() - current.getDay() + 1);
+    
+    for (let i = 0; i < 7; i++) {
+      week.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return week;
+  };
+
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
+
+  const filteredEvents = useMemo(() => {
+    if (selectedMasterFilter === 'all') return calendarEvents;
+    return calendarEvents.filter(e => e.masterId === selectedMasterFilter);
+  }, [selectedMasterFilter]);
+
+  const getEventsForDay = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return filteredEvents.filter(e => e.date === dateStr);
+  };
+
+  const formatTime = (time: string) => time;
+  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  };
+
+  const goToPreviousWeek = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setSelectedDate(newDate);
+  };
+
+  const goToNextWeek = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
   };
 
   return (
@@ -338,10 +534,14 @@ const Index = () => {
 
       <div className="container mx-auto px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <Icon name="LayoutDashboard" size={16} />
               Дашборд
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <Icon name="Calendar" size={16} />
+              Календарь
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Icon name="ClipboardList" size={16} />
@@ -517,6 +717,220 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="calendar" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
+                  <Icon name="ChevronLeft" size={18} />
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToToday}>
+                  Сегодня
+                </Button>
+                <Button variant="outline" size="sm" onClick={goToNextWeek}>
+                  <Icon name="ChevronRight" size={18} />
+                </Button>
+                <h3 className="text-lg font-semibold ml-4">
+                  {weekDays[0] && weekDays[6] && (
+                    <>
+                      {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
+                    </>
+                  )}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <Select value={selectedMasterFilter} onValueChange={setSelectedMasterFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все мастера</SelectItem>
+                    {masters.map(master => (
+                      <SelectItem key={master.id} value={master.id}>
+                        {master.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="bg-accent hover:bg-accent/90">
+                      <Icon name="Plus" size={18} />
+                      <span className="ml-2">Назначить</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Назначить мастера на работу</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Заявка</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите заявку" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {requests.filter(r => r.status === 'new').map(request => (
+                              <SelectItem key={request.id} value={request.id}>
+                                {request.id} - {request.issue}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Мастер</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите мастера" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {masters.map(master => (
+                              <SelectItem key={master.id} value={master.id}>
+                                {master.name} - {master.specialization}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Дата</Label>
+                        <Input type="date" />
+                      </div>
+                      <div>
+                        <Label>Время начала</Label>
+                        <Input type="time" defaultValue="09:00" />
+                      </div>
+                      <div>
+                        <Label>Длительность (минуты)</Label>
+                        <Input type="number" defaultValue="120" />
+                      </div>
+                      <Button className="w-full">Назначить</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-8 border-b">
+                  <div className="p-4 border-r bg-muted/30">
+                    <div className="text-sm font-medium">Мастер</div>
+                  </div>
+                  {weekDays.map((day, index) => {
+                    const isToday = day.toDateString() === new Date().toDateString();
+                    return (
+                      <div 
+                        key={index} 
+                        className={`p-4 border-r text-center ${isToday ? 'bg-primary/5' : ''}`}
+                      >
+                        <div className="text-xs text-muted-foreground">
+                          {day.toLocaleDateString('ru-RU', { weekday: 'short' })}
+                        </div>
+                        <div className={`text-sm font-medium ${isToday ? 'text-primary' : ''}`}>
+                          {day.getDate()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {masters.map((master) => {
+                  const masterEvents = filteredEvents.filter(e => e.masterId === master.id);
+                  return (
+                    <div key={master.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/20 transition-colors">
+                      <div className="p-4 border-r">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: master.color }}
+                          />
+                          <div>
+                            <div className="text-sm font-medium">{master.name}</div>
+                            <div className="text-xs text-muted-foreground">{master.specialization}</div>
+                          </div>
+                        </div>
+                      </div>
+                      {weekDays.map((day, dayIndex) => {
+                        const dayEvents = getEventsForDay(day).filter(e => e.masterId === master.id);
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        return (
+                          <div 
+                            key={dayIndex} 
+                            className={`p-2 border-r min-h-[120px] ${isToday ? 'bg-primary/5' : ''}`}
+                          >
+                            <div className="space-y-1">
+                              {dayEvents.map((event) => (
+                                <div
+                                  key={event.id}
+                                  className="text-xs p-2 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                  style={{ 
+                                    backgroundColor: `${master.color}20`,
+                                    borderLeft: `3px solid ${master.color}`
+                                  }}
+                                >
+                                  <div className="font-medium text-foreground">
+                                    {formatTime(event.time)}
+                                  </div>
+                                  <div className="text-foreground/80 line-clamp-2">
+                                    {event.title}
+                                  </div>
+                                  <div className="text-muted-foreground mt-1">
+                                    {event.clientName}
+                                  </div>
+                                  <div className="mt-1">
+                                    {getPriorityBadge(event.priority)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              {masters.map(master => {
+                const masterEvents = calendarEvents.filter(e => e.masterId === master.id);
+                const totalHours = masterEvents.reduce((sum, e) => sum + e.duration, 0) / 60;
+                return (
+                  <Card key={master.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: master.color }}
+                        />
+                        <CardTitle className="text-base">{master.name}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Заявок на неделе:</span>
+                          <span className="font-medium">{masterEvents.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Часов работы:</span>
+                          <span className="font-medium">{totalHours.toFixed(1)}ч</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Специализация:</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{master.specialization}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
